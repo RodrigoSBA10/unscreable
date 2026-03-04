@@ -79,13 +79,17 @@ fun GameScreen() {
             style = typography.titleLarge,
         )
         GameLayout(
+            currentScrambleWord = gameUiState.currentScrambleWord,
+            onUserGuessChanged = { gameViewModel.updateUserGuess(it) },
+            onKeyboardDone = { gameViewModel.checkUserGuess() },
+            userGuess = gameViewModel.userGuess,
+            wordCount = gameUiState.currentWordCount,
+            isGuessWrong = gameUiState.isGuessedWordWrong,
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .padding(mediumPadding),
-            currentScrambleWord = gameUiState.currentScrambleWord,
-            onUserGuessChanged = { gameViewModel.updateUserGuess(it) },
-            onKeyboardDone = { gameViewModel.checkUserGuess() }
+
         )
         Column(
             modifier = Modifier
@@ -97,7 +101,7 @@ fun GameScreen() {
 
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { }
+                onClick = {gameViewModel.checkUserGuess() }
             ) {
                 Text(
                     text = stringResource(R.string.submit),
@@ -106,7 +110,7 @@ fun GameScreen() {
             }
 
             OutlinedButton(
-                onClick = { },
+                onClick = { gameViewModel.skipWord() },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
@@ -115,7 +119,6 @@ fun GameScreen() {
                 )
             }
         }
-
         GameStatus(score = 0, modifier = Modifier.padding(20.dp))
     }
 }
@@ -135,9 +138,12 @@ fun GameStatus(score: Int, modifier: Modifier = Modifier) {
 
 @Composable
 fun GameLayout(
+    onUserGuessChanged: (String) -> Unit,
+    isGuessWrong: Boolean,
+    userGuess: String,
+    wordCount: Int,
     modifier: Modifier = Modifier,
     currentScrambleWord: String,
-    onUserGuessChanged: (String) -> Unit,
     onKeyboardDone: () -> Unit,
     gameViewModel: GameViewModel = viewModel()
 ) {
@@ -158,7 +164,7 @@ fun GameLayout(
                     .background(colorScheme.surfaceTint)
                     .padding(horizontal = 10.dp, vertical = 4.dp)
                     .align(alignment = Alignment.End),
-                text = stringResource(R.string.word_count, 0),
+                text = stringResource(R.string.word_count, wordCount),
                 style = typography.titleMedium,
                 color = colorScheme.onPrimary
             )
@@ -172,7 +178,8 @@ fun GameLayout(
                 style = typography.titleMedium
             )
             OutlinedTextField(
-                value = gameViewModel.userGuess,
+                value = userGuess,
+                isError = isGuessWrong,
                 singleLine = true,
                 shape = shapes.large,
                 modifier = Modifier.fillMaxWidth(),
@@ -181,14 +188,18 @@ fun GameLayout(
                     unfocusedContainerColor = colorScheme.surface,
                     disabledContainerColor = colorScheme.surface,
                 ),
-                onValueChange = { },
-                label = { Text(stringResource(R.string.enter_your_word)) },
-                isError = false,
+                onValueChange = {onUserGuessChanged},
+                label = {
+                    if (isGuessWrong){
+                        Text(stringResource(R.string.wrong_guess))
+                    }else{
+                        Text(stringResource(R.string.enter_your_word))
+                    } },
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
                 ),
                 keyboardActions = KeyboardActions(
-                    onDone = {onKeyboardDone}
+                    onDone = {onKeyboardDone()}
                 )
             )
         }
