@@ -25,8 +25,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.unscramble.ui.GameScreen
 import com.example.unscramble.ui.theme.UnscrambleTheme
-
+// Clase principal de la aplicacin
 class MainActivity : ComponentActivity() {
+    // Metodo que se ejecuta cuando la app se crea
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    // Llamada a la funcion GameScreen
                     GameScreen()
                 }
             }
