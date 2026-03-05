@@ -62,6 +62,7 @@ import com.example.unscramble.ui.theme.UnscrambleTheme
 fun GameScreen() {
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
     val gameViewModel: GameViewModel = viewModel()
+    // Obtiene el estado del juego
     val gameUiState by gameViewModel.uiState.collectAsState()
 
     Column(
@@ -78,14 +79,19 @@ fun GameScreen() {
             text = stringResource(R.string.app_name),
             style = typography.titleLarge,
         )
+        // Llamada a la funcion GameLayout
         GameLayout(
+            currentScrambleWord = gameUiState.currentScrambleWord,
+            onUserGuessChanged = { gameViewModel.updateUserGuess(it) },
+            onKeyboardDone = { gameViewModel.checkUserGuess() },
+            userGuess = gameViewModel.userGuess,
+            wordCount = gameUiState.currentWordCount,
+            isGuessWrong = gameUiState.isGuessedWordWrong,
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .padding(mediumPadding),
-            currentScrambleWord = gameUiState.currentScrambleWord,
-            onUserGuessChanged = { gameViewModel.updateUserGuess(it) },
-            onKeyboardDone = { gameViewModel.checkUserGuess() }
+
         )
         Column(
             modifier = Modifier
@@ -94,19 +100,19 @@ fun GameScreen() {
             verticalArrangement = Arrangement.spacedBy(mediumPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
+            // Valida la palabra escrita por eso llama a la funcion checkUserGuess
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { }
+                onClick = {gameViewModel.checkUserGuess() }
             ) {
                 Text(
                     text = stringResource(R.string.submit),
                     fontSize = 16.sp
                 )
             }
-
+            // Llama a la funcion skipWord para saltar la palabra
             OutlinedButton(
-                onClick = { },
+                onClick = { gameViewModel.skipWord() },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
@@ -114,14 +120,26 @@ fun GameScreen() {
                     fontSize = 16.sp
                 )
             }
+            // Si el juego termino muestra el dialogo final
+            if (gameUiState.isGameOver) {
+                FinalScoreDialog(
+                    score = gameUiState.score,
+                    onPlayAgain = { gameViewModel.resetGame() }
+                )
+            }
         }
-
-        GameStatus(score = 0, modifier = Modifier.padding(20.dp))
+        // Muestra el puntaje
+        GameStatus(
+            score = gameUiState.score,
+            modifier = Modifier.padding(20.dp)
+        )
     }
 }
 
+// Muestra el puntaje del jugador, recibe el puntaje y el modificador
 @Composable
 fun GameStatus(score: Int, modifier: Modifier = Modifier) {
+    // Crea una tarjeta que contiene el puntaje
     Card(
         modifier = modifier
     ) {
@@ -133,16 +151,25 @@ fun GameStatus(score: Int, modifier: Modifier = Modifier) {
     }
 }
 
+// Construye la interfaz principal del juego
+// onUserGuessChanged: (String) -> Unit recibe la palabra escrita por el jugador
+// isGuessWrong: Boolean recibe si la palabra escrita es incorrecta
+// userGuess: String recibe la palabra escrita por el jugador
+// wordCount: Int recibe el numero de palabras escritas por el jugador
+// currentScrambleWord: String recibe la palabra desordenada
+// onKeyboardDone: () -> Unit Función que se ejecuta cuando el usuario presiona submit.
 @Composable
 fun GameLayout(
+    onUserGuessChanged: (String) -> Unit,
+    isGuessWrong: Boolean,
+    userGuess: String,
+    wordCount: Int,
     modifier: Modifier = Modifier,
     currentScrambleWord: String,
-    onUserGuessChanged: (String) -> Unit,
-    onKeyboardDone: () -> Unit,
-    gameViewModel: GameViewModel = viewModel()
+    onKeyboardDone: () -> Unit
 ) {
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
-
+    // Tarjeta o carta que contiene el juego
     Card(
         modifier = modifier,
         elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
@@ -158,7 +185,7 @@ fun GameLayout(
                     .background(colorScheme.surfaceTint)
                     .padding(horizontal = 10.dp, vertical = 4.dp)
                     .align(alignment = Alignment.End),
-                text = stringResource(R.string.word_count, 0),
+                text = stringResource(R.string.word_count, wordCount),
                 style = typography.titleMedium,
                 color = colorScheme.onPrimary
             )
@@ -171,8 +198,11 @@ fun GameLayout(
                 textAlign = TextAlign.Center,
                 style = typography.titleMedium
             )
+            // Campo donde el usuario escribe la palabra
             OutlinedTextField(
-                value = gameViewModel.userGuess,
+                // Valor del campo de texto
+                value = userGuess,
+                isError = isGuessWrong,
                 singleLine = true,
                 shape = shapes.large,
                 modifier = Modifier.fillMaxWidth(),
@@ -181,14 +211,18 @@ fun GameLayout(
                     unfocusedContainerColor = colorScheme.surface,
                     disabledContainerColor = colorScheme.surface,
                 ),
-                onValueChange = { },
-                label = { Text(stringResource(R.string.enter_your_word)) },
-                isError = false,
+                onValueChange = { onUserGuessChanged(it) },
+                label = {
+                    if (isGuessWrong){
+                        Text(stringResource(R.string.wrong_guess))
+                    }else{
+                        Text(stringResource(R.string.enter_your_word))
+                    } },
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
                 ),
                 keyboardActions = KeyboardActions(
-                    onDone = {onKeyboardDone}
+                    onDone = {onKeyboardDone()}
                 )
             )
         }
